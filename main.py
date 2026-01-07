@@ -42,7 +42,8 @@ def button(surface, color, x, y, w, h, text, text_color):
 
 # --- Main Menu ---
 def main_menu():
-    while True:
+    running = True
+    while running:
         screen.fill(BLACK)
         draw_text("Snake Game", font, GREEN, screen, WIDTH // 2, HEIGHT // 4)
 
@@ -64,7 +65,8 @@ def main_menu():
 
 # --- How To Play Screen ---
 def how_to_play():
-    while True:
+    running = True
+    while running:
         screen.fill(BLACK)
         draw_text("How To Play", font, BLUE, screen, WIDTH // 2, HEIGHT // 6)
         instructions = [
@@ -84,12 +86,13 @@ def how_to_play():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return  # Back to main menu
+                    running = False
 
 
 # --- Game Over Screen ---
 def game_over(score):
-    while True:
+    running = True
+    while running:
         screen.fill(BLACK)
         draw_text("GAME OVER", font, RED, screen, WIDTH // 2, HEIGHT // 3)
         draw_text(f"Score: {score}", small_font, WHITE, screen, WIDTH // 2, HEIGHT // 2)
@@ -102,7 +105,7 @@ def game_over(score):
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return  # Back to main menu
+                    running = False
 
 
 # --- Snake Game Loop ---
@@ -121,9 +124,10 @@ def game_loop():
                     random.randrange(0, HEIGHT // CELL_SIZE) * CELL_SIZE]
 
     score = 0
+    running = True  # <-- added to control ESC exit
 
     # Game loop
-    while True:
+    while running:
         # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -139,7 +143,7 @@ def game_loop():
                 if event.key == pygame.K_RIGHT and direction != "LEFT":
                     change_to = "RIGHT"
                 if event.key == pygame.K_ESCAPE:
-                    return  # Back to menu
+                    running = False  # <-- ESC exits to main menu
 
         direction = change_to
 
@@ -158,6 +162,7 @@ def game_loop():
         # Check collision with walls or self
         if (head_x < 0 or head_x >= WIDTH or head_y < 0 or head_y >= HEIGHT or new_head in snake_pos):
             game_over(score)
+            running = False
 
         # Insert new head
         snake_pos.insert(0, new_head)
