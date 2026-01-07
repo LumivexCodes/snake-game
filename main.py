@@ -26,6 +26,8 @@ small_font = pygame.font.SysFont(None, 30)
 # Clock
 clock = pygame.time.Clock()
 
+# Time settings for smooth movement
+MOVE_INTERVAL = 150  # milliseconds per move
 
 # --- Helper functions ---
 def draw_text(text, font, color, surface, x, y):
@@ -38,6 +40,14 @@ def button(surface, color, x, y, w, h, text, text_color):
     pygame.draw.rect(surface, color, (x, y, w, h))
     draw_text(text, small_font, text_color, surface, x + w // 2, y + h // 2)
     return pygame.Rect(x, y, w, h)
+
+
+def spawn_food(snake_pos):
+    while True:
+        pos = [random.randrange(0, WIDTH // CELL_SIZE) * CELL_SIZE,
+               random.randrange(0, HEIGHT // CELL_SIZE) * CELL_SIZE]
+        if pos not in snake_pos:
+            return pos
 
 
 # --- Main Menu ---
@@ -110,25 +120,18 @@ def game_over(score):
 
 # --- Snake Game Loop ---
 def game_loop():
-    # Initial snake setup
     snake_pos = [[100, 100], [80, 100], [60, 100]]
     direction = "RIGHT"
     change_to = direction
-    speed = 10
 
-    # Spawn initial food
-    food_pos = [random.randrange(0, WIDTH // CELL_SIZE) * CELL_SIZE,
-                random.randrange(0, HEIGHT // CELL_SIZE) * CELL_SIZE]
-    while food_pos in snake_pos:
-        food_pos = [random.randrange(0, WIDTH // CELL_SIZE) * CELL_SIZE,
-                    random.randrange(0, HEIGHT // CELL_SIZE) * CELL_SIZE]
-
+    food_pos = spawn_food(snake_pos)
     score = 0
-    running = True  # <-- added to control ESC exit
+    running = True
 
-    # Game loop
+    last_move_time = pygame.time.get_ticks()
+
     while running:
-        # Event handling
+        current_time = pygame.time.get_ticks()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -143,41 +146,31 @@ def game_loop():
                 if event.key == pygame.K_RIGHT and direction != "LEFT":
                     change_to = "RIGHT"
                 if event.key == pygame.K_ESCAPE:
-                    running = False  # <-- ESC exits to main menu
+                    running = False
 
-        direction = change_to
+        # Move snake only if MOVE_INTERVAL has passed
+        if current_time - last_move_time > MOVE_INTERVAL:
+            direction = change_to
+            head_x, head_y = snake_pos[0]
+            if direction == "UP": head_y -= CELL_SIZE
+            if direction == "DOWN": head_y += CELL_SIZE
+            if direction == "LEFT": head_x -= CELL_SIZE
+            if direction == "RIGHT": head_x += CELL_SIZE
+            new_head = [head_x, head_y]
 
-        # Move snake head
-        head_x, head_y = snake_pos[0]
-        if direction == "UP":
-            head_y -= CELL_SIZE
-        if direction == "DOWN":
-            head_y += CELL_SIZE
-        if direction == "LEFT":
-            head_x -= CELL_SIZE
-        if direction == "RIGHT":
-            head_x += CELL_SIZE
-        new_head = [head_x, head_y]
+            if head_x < 0 or head_x >= WIDTH or head_y < 0 or head_y >= HEIGHT or new_head in snake_pos:
+                game_over(score)
+                running = False
+                continue
 
-        # Check collision with walls or self
-        if (head_x < 0 or head_x >= WIDTH or head_y < 0 or head_y >= HEIGHT or new_head in snake_pos):
-            game_over(score)
-            running = False
+            snake_pos.insert(0, new_head)
+            if new_head == food_pos:
+                score += 1
+                food_pos = spawn_food(snake_pos)
+            else:
+                snake_pos.pop()
 
-        # Insert new head
-        snake_pos.insert(0, new_head)
-
-        # Check if snake ate food
-        if new_head == food_pos:
-            score += 1
-            # Spawn new food on empty space
-            while True:
-                food_pos = [random.randrange(0, WIDTH // CELL_SIZE) * CELL_SIZE,
-                            random.randrange(0, HEIGHT // CELL_SIZE) * CELL_SIZE]
-                if food_pos not in snake_pos:
-                    break
-        else:
-            snake_pos.pop()  # Remove tail if no food eaten
+            last_move_time = current_time
 
         # Draw everything
         screen.fill(BLACK)
@@ -185,12 +178,10 @@ def game_loop():
             pygame.draw.rect(screen, GREEN, pygame.Rect(block[0], block[1], CELL_SIZE, CELL_SIZE))
         pygame.draw.rect(screen, RED, pygame.Rect(food_pos[0], food_pos[1], CELL_SIZE, CELL_SIZE))
 
-        # Draw score
         draw_text(f"Score: {score}", small_font, WHITE, screen, 60, 20)
 
-        # Update display and tick
         pygame.display.update()
-        clock.tick(speed)
+        clock.tick(60)  # keep FPS high but movement controlled by MOVE_INTERVAL
 
 
 # --- Start Game ---
