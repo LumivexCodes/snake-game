@@ -1,0 +1,9 @@
+## Requirements
+
+- Python 3.x
+- Pygame library
+
+Install Pygame with:
+
+```bash
+pip install pygame
